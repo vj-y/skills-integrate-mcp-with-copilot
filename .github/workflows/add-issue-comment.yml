@@ -1,24 +1,39 @@
 name: Add closing comment to issue
 
 on:
-  push:
+  pull_request:
     branches:
-      - copilot/add-closing-comment-issue
+      - main
+    types:
+      - closed
 
 permissions:
   issues: write
 
 jobs:
   comment:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Add closing comment to issue 5
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.issues.createComment({
+            const closingText = "We implemented the Admin Mode feature by adding a teacher login modal with backend token-based authentication so that only authenticated teachers can register or unregister students from activities, while the participant list remains visible to all users. Thank you to everyone who contributed ideas and feedback on this issue — your input helped shape a clean and practical solution! 🎉";
+
+            // Check if closing comment was already posted to avoid duplicates
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 5,
-              body: "We implemented the Admin Mode feature by adding a teacher login modal with backend token-based authentication so that only authenticated teachers can register or unregister students from activities, while the participant list remains visible to all users. Thank you to everyone who contributed ideas and feedback on this issue — your input helped shape a clean and practical solution! 🎉"
             });
+
+            const alreadyPosted = comments.some(c => c.body.includes("implemented the Admin Mode feature"));
+            if (!alreadyPosted) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: 5,
+                body: closingText
+              });
+            }
